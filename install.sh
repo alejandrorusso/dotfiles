@@ -1,20 +1,51 @@
 #!/usr/bin/env bash
 # Dotfiles installer — distilled from /vol/docker-nvim-haskell-latex-LLM/dockerfiles/neo-h.docker.
-# Haskell and LaTeX are intentionally excluded (provided by the engine-v2 devcontainer or not needed).
+#
+# Core install covers neovim + tmux + shell tools. Haskell and LaTeX are
+# opt-in via flags (the engine-v2 devcontainer already provides Haskell, so
+# skip --haskell in that context).
 #
 # Safe to re-run: every step checks whether its target already exists before acting.
 #
 # Usage:
-#   bash install.sh                  # install everything into $HOME
-#   DOTFILES_DIR=/path bash install.sh
+#   bash install.sh                      # core only (no Haskell, no LaTeX, no mkdocs)
+#   bash install.sh --haskell            # core + GHC/Cabal/HLS/fourmolu/cabal-gild/hlint/hoogle/fast-tags
+#   bash install.sh --latex              # core + texlive/zathura/biber/lhs2tex + Mason texlab/ltex-ls
+#   bash install.sh --mkdocs             # core + mkdocs + mkdocs-material + puppeteer + Chrome
+#   bash install.sh --all                # --haskell --latex --mkdocs
+#   DOTFILES_DIR=/path bash install.sh   # override source dir
 
 set -euo pipefail
+
+WITH_HASKELL=0
+WITH_LATEX=0
+WITH_MKDOCS=0
+for arg in "$@"; do
+  case "$arg" in
+    --haskell) WITH_HASKELL=1 ;;
+    --latex)   WITH_LATEX=1 ;;
+    --mkdocs)  WITH_MKDOCS=1 ;;
+    --all)     WITH_HASKELL=1; WITH_LATEX=1; WITH_MKDOCS=1 ;;
+    -h|--help)
+      sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "Unknown flag: $arg" >&2; exit 2 ;;
+  esac
+done
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 HOME_DIR="${HOME:?HOME not set}"
 NVIM_VERSION="v0.11.0"
 NVIM_TARBALL="nvim-linux-x86_64"
 TREESITTER_VERSION="0.25.10"   # last version compatible with GLIBC 2.35 (Ubuntu 22.04)
+NVM_VERSION="v0.40.1"
+# Default: latest LTS (tracked via nvm's lts/* alias).
+# Override with e.g. NODE_VERSION=node (current) or NODE_VERSION=22 to pin.
+NODE_VERSION="${NODE_VERSION:---lts}"
+# Haskell versions pinned to match /vol/engine-v2/.devcontainer/devcontainer.json
+# (so a --haskell install matches what the engine-v2 devcontainer provides).
+GHC_VERSION="9.12.2"
+CABAL_VERSION="3.16.0.0"
+HLS_VERSION="recommended"      # let ghcup pick the latest HLS compatible with GHC_VERSION
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m==>\033[0m %s\n' "$*" >&2; }
@@ -42,7 +73,7 @@ apt_install \
   build-essential gcc autoconf automake gpg dirmngr gnupg2 socat lsb-release \
   ca-certificates \
   powerline less \
-  trash-cli tldr bat coreutils unzip locales npm ripgrep fd-find luarocks \
+  trash-cli tldr bat coreutils unzip locales ripgrep fd-find luarocks \
   tmux inetutils-ping xclip duf
 
 # fd ships as fdfind on Debian/Ubuntu; add a convenience symlink if missing.
@@ -116,7 +147,39 @@ if [ ! -d "$HOME_DIR/.fzf" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 3. NeoVim v0.11.0 binary + tree-sitter-cli + jsregexp
+# 3. Node.js via NVM (Ubuntu 22.04's apt npm = Node 12, too old for tree-sitter-cli 0.25)
+# ---------------------------------------------------------------------------
+export NVM_DIR="$HOME_DIR/.nvm"
+if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+  log "Installing nvm ${NVM_VERSION}"
+  curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash
+fi
+
+# Source nvm for the rest of this script.
+# shellcheck disable=SC1091
+. "$NVM_DIR/nvm.sh"
+
+log "Installing Node.js (${NODE_VERSION}) via nvm"
+nvm install "$NODE_VERSION"   # idempotent: prints "already installed" if present
+if [ "$NODE_VERSION" = "--lts" ]; then
+  nvm alias default 'lts/*' >/dev/null
+else
+  nvm alias default "$NODE_VERSION" >/dev/null
+fi
+nvm use "$NODE_VERSION" >/dev/null
+
+if ! command -v tree-sitter >/dev/null 2>&1; then
+  log "Installing tree-sitter-cli@${TREESITTER_VERSION}"
+  npm install -g "tree-sitter-cli@${TREESITTER_VERSION}"
+fi
+
+if ! command -v claude >/dev/null 2>&1; then
+  log "Installing Claude Code CLI (@anthropic-ai/claude-code)"
+  npm install -g @anthropic-ai/claude-code
+fi
+
+# ---------------------------------------------------------------------------
+# 4. NeoVim v0.11.0 binary + jsregexp
 # ---------------------------------------------------------------------------
 if [ ! -x "/opt/${NVIM_TARBALL}/bin/nvim" ]; then
   log "Installing NeoVim ${NVIM_VERSION}"
@@ -127,11 +190,6 @@ if [ ! -x "/opt/${NVIM_TARBALL}/bin/nvim" ]; then
   rm -rf "$tmp"
 fi
 NVIM_BIN="/opt/${NVIM_TARBALL}/bin/nvim"
-
-if ! command -v tree-sitter >/dev/null 2>&1; then
-  log "Installing tree-sitter-cli@${TREESITTER_VERSION}"
-  $SUDO npm install -g "tree-sitter-cli@${TREESITTER_VERSION}"
-fi
 
 log "Installing luarocks jsregexp (required by some nvim plugins)"
 $SUDO luarocks install --force jsregexp >/dev/null
@@ -233,13 +291,121 @@ fi
 log "Bootstrapping nvim plugins (Lazy sync) — this may take a minute"
 "$NVIM_BIN" --headless "+Lazy! sync" +qa || warn "Lazy sync reported errors — run nvim interactively to inspect"
 
-log "Installing Mason tools (marksman, stylua, lua-language-server, prettier, ltex-ls, texlab, clangd, fourmolu)"
+log "Installing Mason tools (marksman, stylua, lua-language-server, prettier, clangd)"
 "$NVIM_BIN" --headless +"MasonUpdate" +q || true
 "$NVIM_BIN" --headless \
-  +"MasonInstall marksman stylua lua-language-server prettier@2.8.8 ltex-ls texlab clangd fourmolu" \
+  +"MasonInstall marksman stylua lua-language-server prettier@2.8.8 clangd" \
   +q || warn "MasonInstall reported errors — continuing"
 
 log "Installing treesitter parser for yaml"
 "$NVIM_BIN" --headless +"TSInstall! yaml" +q || true
 
+# ---------------------------------------------------------------------------
+# 11. Optional: Haskell layer  (--haskell)
+# ---------------------------------------------------------------------------
+if [ "$WITH_HASKELL" -eq 1 ]; then
+  log "[haskell] Installing GHC ${GHC_VERSION} / Cabal ${CABAL_VERSION} / HLS (${HLS_VERSION}) via ghcup"
+  log "[haskell] Versions match /vol/engine-v2/.devcontainer/devcontainer.json"
+
+  apt_install libnuma-dev zlib1g-dev libgmp-dev libgmp10 liblzma-dev
+
+  if [ ! -x "$HOME_DIR/.ghcup/bin/ghcup" ]; then
+    export BOOTSTRAP_HASKELL_NONINTERACTIVE=1
+    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+  else
+    log "[haskell] ghcup already present — skipping bootstrap"
+  fi
+
+  export PATH="$HOME_DIR/.ghcup/bin:$HOME_DIR/.cabal/bin:$PATH"
+
+  ghcup install ghc    "$GHC_VERSION"    && ghcup set ghc    "$GHC_VERSION"
+  ghcup install cabal  "$CABAL_VERSION"  && ghcup set cabal  "$CABAL_VERSION"
+  ghcup install hls    "$HLS_VERSION"    && ghcup set hls    "$HLS_VERSION"
+
+  cabal update
+  command -v fast-tags >/dev/null 2>&1 || cabal install fast-tags
+  command -v hlint     >/dev/null 2>&1 || cabal install hlint   # matches devcontainer.json globalPackages
+
+  if ! command -v hoogle >/dev/null 2>&1; then
+    log "[haskell] Building hoogle from source (workaround for upstream bug)"
+    tmp=$(mktemp -d)
+    git clone --depth 1 https://github.com/ndmitchell/hoogle.git "$tmp/hoogle"
+    ( cd "$tmp/hoogle" && cabal install )
+    hoogle generate || warn "[haskell] hoogle generate failed — run manually later"
+    rm -rf "$tmp"
+  fi
+
+  # fourmolu and cabal-gild: install via cabal to pick up the same toolchain
+  # used for building (Mason's prebuilt fourmolu binary can drift).
+  command -v fourmolu   >/dev/null 2>&1 || cabal install fourmolu
+  command -v cabal-gild >/dev/null 2>&1 || cabal install cabal-gild
+fi
+
+# ---------------------------------------------------------------------------
+# 12. Optional: LaTeX layer  (--latex)
+# ---------------------------------------------------------------------------
+if [ "$WITH_LATEX" -eq 1 ]; then
+  log "[latex] Installing texlive + zathura + biber + lhs2tex"
+
+  # Accept the Microsoft fonts EULA non-interactively.
+  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true \
+    | $SUDO debconf-set-selections
+
+  apt_install \
+    texlive-xetex texlive-luatex texlive-science \
+    texlive-extra-utils texlive-bibtex-extra texlive-fonts-extra \
+    latexmk biber lhs2tex \
+    zathura python3-pygments ttf-mscorefonts-installer \
+    pdftk evince inkscape
+
+  log "[latex] Installing Mason texlab + ltex-ls"
+  "$NVIM_BIN" --headless +"MasonInstall ltex-ls texlab" +q || warn "[latex] Mason install failed"
+
+  log "[latex] Installing treesitter parsers for latex + bibtex"
+  "$NVIM_BIN" --headless +"TSInstall! latex bibtex" +q || true
+fi
+
+# ---------------------------------------------------------------------------
+# 13. Optional: MkDocs layer  (--mkdocs)
+#     Python mkdocs + mkdocs-material + puppeteer + headless Chrome for PDF export
+# ---------------------------------------------------------------------------
+if [ "$WITH_MKDOCS" -eq 1 ]; then
+  log "[mkdocs] Installing pip + mkdocs python packages"
+  apt_install python3-pip python3-venv
+
+  # Install as the current user (not root) to avoid PEP 668 'externally-managed-environment' errors.
+  python3 -m pip install --user --upgrade Pygments
+  python3 -m pip install --user \
+    pymdown-extensions \
+    mkdocs \
+    mkdocs-material \
+    mkdocs-include-markdown-plugin \
+    mkdocs-excel-plugin \
+    mkdocs-page-pdf
+
+  log "[mkdocs] Installing Google Chrome + CJK fonts for PDF rendering"
+  if [ ! -f /etc/apt/sources.list.d/google-chrome.list ]; then
+    $SUDO install -d /etc/apt/keyrings
+    curl -fsSL https://dl-ssl.google.com/linux/linux_signing_key.pub \
+      | $SUDO gpg --dearmor -o /etc/apt/keyrings/google-linux.gpg
+    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-linux.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
+      | $SUDO tee /etc/apt/sources.list.d/google-chrome.list >/dev/null
+  fi
+  apt_install \
+    google-chrome-stable \
+    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf \
+    libxss1
+
+  log "[mkdocs] Installing puppeteer (used by mkdocs-page-pdf)"
+  mkdir -p "$HOME_DIR/.mkdocs-deps"
+  ( cd "$HOME_DIR/.mkdocs-deps"
+    [ -f package.json ] || npm init -y >/dev/null
+    npm install puppeteer )
+fi
+
 log "Done. Open a new shell (or 'source ~/.bashrc') and run 'nvim' — checkhealth with ':checkhealth'."
+[ "$WITH_HASKELL" -eq 1 ] && log "Haskell layer installed (GHC ${GHC_VERSION}, Cabal ${CABAL_VERSION}, HLS ${HLS_VERSION})."
+[ "$WITH_LATEX"   -eq 1 ] && log "LaTeX layer installed."
+[ "$WITH_MKDOCS"  -eq 1 ] && log "MkDocs layer installed (puppeteer under ~/.mkdocs-deps)."
+[ "$WITH_HASKELL" -eq 0 ] && [ "$WITH_LATEX" -eq 0 ] && [ "$WITH_MKDOCS" -eq 0 ] && \
+  log "Core only. Re-run with --haskell / --latex / --mkdocs (or --all) to add layers."
