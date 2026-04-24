@@ -46,31 +46,65 @@ once for core and re-run later with any layer flag when you need it.
 
 ## Install via devcontainers CLI
 
-Push this repo to GitHub, then launch any devcontainer with:
+The devcontainer CLI clones this repo into `~/dotfiles` and runs the chosen
+install script as the container user after `postCreateCommand` finishes.
+Plugins compile against the devcontainer's libc, avoiding the arch-mismatch
+problem you get when bind-mounting a `~/.local/share/nvim` from another
+container.
+
+### Quick-launch scripts
+
+For each layer there's a host-side launcher that runs `devcontainer up` +
+`devcontainer exec` with the right flags. `cd` into the project you want to
+open, then run one of:
+
+```bash
+bash /path/to/dotfiles/core.sh       # core only (matches engine-v2; Haskell comes from the devcontainer)
+bash /path/to/dotfiles/haskell.sh    # core + Haskell layer
+bash /path/to/dotfiles/latex.sh      # core + LaTeX layer
+bash /path/to/dotfiles/mkdocs.sh     # core + MkDocs layer
+bash /path/to/dotfiles/all.sh        # core + all three layers
+```
+
+You can also pass a workspace folder explicitly: `haskell.sh ~/code/my-repo`.
+
+Each launcher points `--dotfiles-install-command` at a small wrapper
+(`install-<layer>.sh`) that invokes `install.sh` with the matching flag —
+necessary because the devcontainer CLI's `--dotfiles-install-command`
+doesn't forward arguments.
+
+### Manual invocation
+
+If you'd rather spell it out:
 
 ```bash
 devcontainer up \
   --workspace-folder . \
-  --dotfiles-repository https://github.com/<you>/dotfiles \
+  --dotfiles-repository https://github.com/alejandrorusso/dotfiles \
   --dotfiles-install-command install.sh \
   --dotfiles-target-path ~/dotfiles
+
+devcontainer exec --workspace-folder . bash
 ```
 
-The devcontainer CLI clones this repo into `~/dotfiles` and runs `install.sh`
-as the container user after `postCreateCommand` finishes. Plugins compile
-against the devcontainer's libc, avoiding the arch-mismatch problem you get
-when bind-mounting a `~/.local/share/nvim` from another container.
+Swap `install.sh` for `install-haskell.sh` / `install-latex.sh` /
+`install-mkdocs.sh` / `install-all.sh` to add layers.
 
 ## Layout
 
 ```
 .
-├── install.sh
-├── bash/bashrc.d/      — sourced from ~/.bashrc in order
+├── install.sh                — core installer with --haskell / --latex / --mkdocs / --all flags
+├── install-{haskell,latex,mkdocs,all}.sh
+│                             — wrappers that call install.sh with one flag each
+│                               (pointed at by --dotfiles-install-command)
+├── {core,haskell,latex,mkdocs,all}.sh
+│                             — host-side launchers: `devcontainer up` + `exec` for a given layer
+├── bash/bashrc.d/            — sourced from ~/.bashrc in order
 ├── nvim/
-│   ├── init-add.lua    — appended to NvChad's init.lua once
-│   ├── fourmolu.yaml   — copied next to Mason's fourmolu binary
-│   └── lua/            — symlinked into ~/.config/nvim/lua
+│   ├── init-add.lua          — appended to NvChad's init.lua once
+│   ├── fourmolu.yaml         — reference copy of fourmolu config
+│   └── lua/                  — symlinked into ~/.config/nvim/lua
 ├── tmux/tmux.conf
 └── powerline/default.twolines.json
 ```
