@@ -156,6 +156,8 @@ if [ ! -s "$NVM_DIR/nvm.sh" ]; then
 fi
 
 # Source nvm for the rest of this script.
+# nvm is not written for set -u; temporarily relax nounset.
+set +u
 # shellcheck disable=SC1091
 . "$NVM_DIR/nvm.sh"
 
@@ -167,6 +169,7 @@ else
   nvm alias default "$NODE_VERSION" >/dev/null
 fi
 nvm use "$NODE_VERSION" >/dev/null
+set -u
 
 if ! command -v tree-sitter >/dev/null 2>&1; then
   log "Installing tree-sitter-cli@${TREESITTER_VERSION}"
