@@ -205,6 +205,7 @@ if [ ! -d "$HOME_DIR/.tmux/plugins/tpm" ]; then
   git clone https://github.com/tmux-plugins/tpm "$HOME_DIR/.tmux/plugins/tpm"
 fi
 
+
 # ---------------------------------------------------------------------------
 # 5. NvChad starter (only if ~/.config/nvim is empty)
 # ---------------------------------------------------------------------------
@@ -250,6 +251,9 @@ fi
 
 log "Linking tmux.conf"
 link "$DOTFILES_DIR/tmux/tmux.conf" "$HOME_DIR/.tmux.conf"
+
+log "Installing tmux plugins via tpm"
+"$HOME_DIR/.tmux/plugins/tpm/bin/install_plugins"
 
 # ---------------------------------------------------------------------------
 # 7. Powerline two-lines theme
