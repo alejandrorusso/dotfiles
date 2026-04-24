@@ -33,6 +33,13 @@ for arg in "$@"; do
 done
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+
+# Ensure dotfiles checkout uses LF (container git may default to CRLF).
+if git -C "$DOTFILES_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  git -C "$DOTFILES_DIR" config core.autocrlf input
+  git -C "$DOTFILES_DIR" rm --cached -r -q . 2>/dev/null || true
+  git -C "$DOTFILES_DIR" checkout -- .
+fi
 HOME_DIR="${HOME:?HOME not set}"
 NVIM_VERSION="v0.11.0"
 NVIM_TARBALL="nvim-linux-x86_64"
@@ -236,7 +243,7 @@ link "$DOTFILES_DIR/nvim/lua/custom/autocmds.lua" "$HOME_DIR/.config/nvim/lua/cu
 
 # Append init-add.lua to the NvChad init.lua once (idempotent).
 INIT_MARKER="-- >>> dotfiles init-add.lua"
-if ! grep -qF "$INIT_MARKER" "$HOME_DIR/.config/nvim/init.lua"; then
+if ! grep -qF -- "$INIT_MARKER" "$HOME_DIR/.config/nvim/init.lua"; then
   log "Appending top-level init to ~/.config/nvim/init.lua"
   {
     printf '\n%s\n' "$INIT_MARKER"
@@ -253,7 +260,8 @@ log "Linking tmux.conf"
 link "$DOTFILES_DIR/tmux/tmux.conf" "$HOME_DIR/.tmux.conf"
 
 log "Installing tmux plugins via tpm"
-"$HOME_DIR/.tmux/plugins/tpm/bin/install_plugins"
+TMUX_PLUGIN_MANAGER_PATH="$HOME_DIR/.tmux/plugins" \
+  "$HOME_DIR/.tmux/plugins/tpm/bin/install_plugins"
 
 # ---------------------------------------------------------------------------
 # 7. Powerline two-lines theme
