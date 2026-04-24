@@ -11,12 +11,14 @@ param(
   [switch]$All
 )
 
-$filter = @("--filter", "label=devcontainer.local_folder")
-$format = "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Label `"devcontainer.local_folder`"}}"
+$dockerArgs = @("ps", "--filter", "label=devcontainer.local_folder", "--format", "{{json .}}")
+if ($All) { $dockerArgs = @("ps", "-a", "--filter", "label=devcontainer.local_folder", "--format", "{{json .}}") }
 
-$args = @("ps")
-if ($All) { $args += "-a" }
-$args += $filter
-$args += @("--format", $format)
+$rows = & docker @dockerArgs | ForEach-Object { $_ | ConvertFrom-Json }
 
-docker @args
+$rows | Format-Table -AutoSize @(
+  @{ Label = "CONTAINER ID"; Expression = { $_.ID } }
+  @{ Label = "NAME";         Expression = { $_.Names } }
+  @{ Label = "STATUS";       Expression = { $_.Status } }
+  @{ Label = "WORKSPACE";    Expression = { $_.Labels.'devcontainer.local_folder' } }
+)

@@ -11,7 +11,7 @@ args=(ps)
 [[ "${1:-}" == "-a" || "${1:-}" == "--all" ]] && args+=("-a")
 args+=(
   --filter "label=devcontainer.local_folder"
-  --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Label \"devcontainer.local_folder\"}}"
+  --format 'table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{index .Labels "devcontainer.local_folder"}}'
 )
 
 docker "${args[@]}"
