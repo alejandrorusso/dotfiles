@@ -55,9 +55,12 @@ container.
 ### Quick-launch scripts
 
 For each layer there's a host-side launcher that runs `devcontainer up` +
-`devcontainer exec` with the right flags. `cd` into the project you want to
-open, then run one of:
+`devcontainer exec` with the right flags. Two variants for each layer:
+`.sh` for bash (WSL / Linux / macOS / Git Bash) and `.ps1` for PowerShell.
 
+`cd` into the project you want to open, then run one of:
+
+**bash**
 ```bash
 bash /path/to/dotfiles/core.sh       # core only (matches engine-v2; Haskell comes from the devcontainer)
 bash /path/to/dotfiles/haskell.sh    # core + Haskell layer
@@ -66,12 +69,26 @@ bash /path/to/dotfiles/mkdocs.sh     # core + MkDocs layer
 bash /path/to/dotfiles/all.sh        # core + all three layers
 ```
 
-You can also pass a workspace folder explicitly: `haskell.sh ~/code/my-repo`.
+**PowerShell**
+```powershell
+C:\path\to\dotfiles\core.ps1         # core only
+C:\path\to\dotfiles\haskell.ps1      # core + Haskell layer
+C:\path\to\dotfiles\latex.ps1        # core + LaTeX layer
+C:\path\to\dotfiles\mkdocs.ps1       # core + MkDocs layer
+C:\path\to\dotfiles\all.ps1          # core + all three layers
+```
+
+You can also pass a workspace folder explicitly: `haskell.sh ~/code/my-repo`
+or `.\haskell.ps1 C:\code\my-repo`.
 
 Each launcher points `--dotfiles-install-command` at a small wrapper
 (`install-<layer>.sh`) that invokes `install.sh` with the matching flag —
 necessary because the devcontainer CLI's `--dotfiles-install-command`
 doesn't forward arguments.
+
+> **PowerShell execution policy.** If you hit `cannot be loaded because
+> running scripts is disabled`, run once:
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
 
 ### Manual invocation
 
@@ -99,7 +116,9 @@ Swap `install.sh` for `install-haskell.sh` / `install-latex.sh` /
 │                             — wrappers that call install.sh with one flag each
 │                               (pointed at by --dotfiles-install-command)
 ├── {core,haskell,latex,mkdocs,all}.sh
-│                             — host-side launchers: `devcontainer up` + `exec` for a given layer
+│                             — host-side launchers for bash (WSL/Linux/macOS/Git Bash)
+├── {core,haskell,latex,mkdocs,all}.ps1
+│                             — host-side launchers for PowerShell on Windows
 ├── bash/bashrc.d/            — sourced from ~/.bashrc in order
 ├── nvim/
 │   ├── init-add.lua          — appended to NvChad's init.lua once
