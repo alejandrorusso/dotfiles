@@ -82,7 +82,7 @@ apt_install \
   ca-certificates \
   powerline less \
   trash-cli tldr bat coreutils unzip locales ripgrep fd-find luarocks \
-  tmux inetutils-ping xclip duf
+  tmux ncurses-term inetutils-ping xclip duf
 
 # fd ships as fdfind on Debian/Ubuntu; add a convenience symlink if missing.
 if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
@@ -301,9 +301,15 @@ unset _f
 EOF
 fi
 
-# Belt and braces: if anything upstream (skel, devcontainer feature) wrote ~/.bashrc with CRLF,
-# strip it now so a fresh `bash` invocation does not die with $'\r': command not found.
-sed -i 's/\r$//' "$HOME_DIR/.bashrc"
+# Belt and braces: if anything upstream (skel, devcontainer common-utils feature) wrote
+# any HOME-level shell startup file with CRLF, strip it now so a fresh `bash` invocation
+# does not die with $'\r': command not found. The original culprit was ~/.bash_aliases
+# created by the vscode devcontainer feature with CRLF endings.
+for _f in "$HOME_DIR"/.bashrc "$HOME_DIR"/.bash_aliases "$HOME_DIR"/.bash_profile \
+          "$HOME_DIR"/.bash_login "$HOME_DIR"/.profile; do
+  [ -f "$_f" ] && sed -i 's/\r$//' "$_f"
+done
+unset _f
 
 # ---------------------------------------------------------------------------
 # 10. Headless nvim plugin + Mason install
