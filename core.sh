@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Bring up the devcontainer in the current (or given) workspace folder with
-# only the core dotfiles layer (neovim, tmux, shell tools, claude-code),
-# then drop into a bash shell. Use this for engine-v2 where the devcontainer
-# already provides the Haskell toolchain.
+# Bring up the devcontainer in the current (or given) workspace folder,
+# overlay the dotfiles (neovim, tmux, shell tools, claude-code), and drop
+# into a bash shell. Language toolchains come from the project's own
+# devcontainer.
 #
 # Usage:  core.sh [workspace-folder]
 set -euo pipefail

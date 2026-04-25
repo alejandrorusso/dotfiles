@@ -1,36 +1,22 @@
 #!/usr/bin/env bash
-# Dotfiles installer — distilled from /vol/docker-nvim-haskell-latex-LLM/dockerfiles/neo-h.docker.
-#
-# Core install covers neovim + tmux + shell tools. Haskell and LaTeX are
-# opt-in via flags (the engine-v2 devcontainer already provides Haskell, so
-# skip --haskell in that context).
+# Dotfiles installer — overlays your shell, tmux, neovim, and CLI tooling onto
+# any devcontainer. Toolchains (Haskell, LaTeX, etc.) are expected to come
+# from the project's own devcontainer.
 #
 # Safe to re-run: every step checks whether its target already exists before acting.
 #
 # Usage:
-#   bash install.sh                      # core only (no Haskell, no LaTeX, no mkdocs)
-#   bash install.sh --haskell            # core + GHC/Cabal/HLS/fourmolu/cabal-gild/hlint/hoogle/fast-tags
-#   bash install.sh --latex              # core + texlive/zathura/biber/lhs2tex + Mason texlab/ltex-ls
-#   bash install.sh --mkdocs             # core + mkdocs + mkdocs-material + puppeteer + Chrome
-#   bash install.sh --all                # --haskell --latex --mkdocs
+#   bash install.sh                      # core install
 #   DOTFILES_DIR=/path bash install.sh   # override source dir
 
 set -euo pipefail
 
-WITH_HASKELL=0
-WITH_LATEX=0
-WITH_MKDOCS=0
-for arg in "$@"; do
-  case "$arg" in
-    --haskell) WITH_HASKELL=1 ;;
-    --latex)   WITH_LATEX=1 ;;
-    --mkdocs)  WITH_MKDOCS=1 ;;
-    --all)     WITH_HASKELL=1; WITH_LATEX=1; WITH_MKDOCS=1 ;;
-    -h|--help)
-      sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) echo "Unknown flag: $arg" >&2; exit 2 ;;
+if [ "$#" -gt 0 ]; then
+  case "$1" in
+    -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
-done
+fi
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 
@@ -49,11 +35,6 @@ NVM_VERSION="v0.40.1"
 # Default: latest LTS (tracked via nvm's lts/* alias).
 # Override with e.g. NODE_VERSION=node (current) or NODE_VERSION=22 to pin.
 NODE_VERSION="${NODE_VERSION:---lts}"
-# Haskell versions pinned to match /vol/engine-v2/.devcontainer/devcontainer.json
-# (so a --haskell install matches what the engine-v2 devcontainer provides).
-GHC_VERSION="9.12.2"
-CABAL_VERSION="3.16.0.0"
-HLS_VERSION="recommended"      # let ghcup pick the latest HLS compatible with GHC_VERSION
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m==>\033[0m %s\n' "$*" >&2; }
@@ -73,7 +54,7 @@ apt_install() {
 }
 
 # ---------------------------------------------------------------------------
-# 1. Base apt packages (shell tools, nvim deps — NO Haskell, NO LaTeX)
+# 1. Base apt packages (shell tools, nvim deps)
 # ---------------------------------------------------------------------------
 log "Installing apt packages"
 apt_install \
@@ -326,123 +307,4 @@ log "Installing Mason tools (marksman, stylua, lua-language-server, prettier, cl
 log "Installing treesitter parser for yaml"
 "$NVIM_BIN" --headless +"TSInstall! yaml" +q || true
 
-# ---------------------------------------------------------------------------
-# 11. Optional: Haskell layer  (--haskell)
-# ---------------------------------------------------------------------------
-if [ "$WITH_HASKELL" -eq 1 ]; then
-  log "[haskell] Installing GHC ${GHC_VERSION} / Cabal ${CABAL_VERSION} / HLS (${HLS_VERSION}) via ghcup"
-  log "[haskell] Versions match /vol/engine-v2/.devcontainer/devcontainer.json"
-
-  apt_install libnuma-dev zlib1g-dev libgmp-dev libgmp10 liblzma-dev
-
-  if [ ! -x "$HOME_DIR/.ghcup/bin/ghcup" ]; then
-    export BOOTSTRAP_HASKELL_NONINTERACTIVE=1
-    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-  else
-    log "[haskell] ghcup already present — skipping bootstrap"
-  fi
-
-  export PATH="$HOME_DIR/.ghcup/bin:$HOME_DIR/.cabal/bin:$PATH"
-
-  ghcup install ghc    "$GHC_VERSION"    && ghcup set ghc    "$GHC_VERSION"
-  ghcup install cabal  "$CABAL_VERSION"  && ghcup set cabal  "$CABAL_VERSION"
-  ghcup install hls    "$HLS_VERSION"    && ghcup set hls    "$HLS_VERSION"
-
-  cabal update
-  command -v fast-tags >/dev/null 2>&1 || cabal install fast-tags
-  command -v hlint     >/dev/null 2>&1 || cabal install hlint   # matches devcontainer.json globalPackages
-
-  if ! command -v hoogle >/dev/null 2>&1; then
-    log "[haskell] Building hoogle from source (workaround for upstream bug)"
-    tmp=$(mktemp -d)
-    git clone --depth 1 https://github.com/ndmitchell/hoogle.git "$tmp/hoogle"
-    ( cd "$tmp/hoogle" && cabal install )
-    hoogle generate || warn "[haskell] hoogle generate failed — run manually later"
-    rm -rf "$tmp"
-  fi
-
-  # fourmolu and cabal-gild: install via cabal to pick up the same toolchain
-  # used for building (Mason's prebuilt fourmolu binary can drift).
-  command -v fourmolu   >/dev/null 2>&1 || cabal install fourmolu
-  command -v cabal-gild >/dev/null 2>&1 || cabal install cabal-gild
-fi
-
-# ---------------------------------------------------------------------------
-# 12. Optional: LaTeX layer  (--latex)
-# ---------------------------------------------------------------------------
-if [ "$WITH_LATEX" -eq 1 ]; then
-  log "[latex] Installing texlive + zathura + biber + lhs2tex"
-
-  # Accept the Microsoft fonts EULA non-interactively.
-  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true \
-    | $SUDO debconf-set-selections
-
-  apt_install \
-    texlive-xetex texlive-luatex texlive-science \
-    texlive-extra-utils texlive-bibtex-extra texlive-fonts-extra \
-    latexmk biber lhs2tex \
-    zathura python3-pygments ttf-mscorefonts-installer \
-    pdftk evince inkscape
-
-  log "[latex] Installing Mason texlab + ltex-ls"
-  "$NVIM_BIN" --headless +"MasonInstall ltex-ls texlab" +q || warn "[latex] Mason install failed"
-
-  log "[latex] Installing treesitter parsers for latex + bibtex"
-  "$NVIM_BIN" --headless +"TSInstall! latex bibtex" +q || true
-fi
-
-# ---------------------------------------------------------------------------
-# 13. Optional: MkDocs layer  (--mkdocs)
-#     Python mkdocs + mkdocs-material + puppeteer + headless Chrome for PDF export
-# ---------------------------------------------------------------------------
-if [ "$WITH_MKDOCS" -eq 1 ]; then
-  log "[mkdocs] Installing pip + mkdocs python packages"
-  apt_install python3-pip python3-venv
-
-  # Install as the current user (not root) to avoid PEP 668 'externally-managed-environment' errors.
-  python3 -m pip install --user --upgrade Pygments
-  python3 -m pip install --user \
-    pymdown-extensions \
-    mkdocs \
-    mkdocs-material \
-    mkdocs-include-markdown-plugin \
-    mkdocs-excel-plugin \
-    mkdocs-page-pdf
-
-  log "[mkdocs] Installing Google Chrome + CJK fonts for PDF rendering"
-  if [ ! -f /etc/apt/sources.list.d/google-chrome.list ]; then
-    $SUDO install -d /etc/apt/keyrings
-    curl -fsSL https://dl-ssl.google.com/linux/linux_signing_key.pub \
-      | $SUDO gpg --dearmor -o /etc/apt/keyrings/google-linux.gpg
-    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-linux.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
-      | $SUDO tee /etc/apt/sources.list.d/google-chrome.list >/dev/null
-  fi
-  apt_install \
-    google-chrome-stable \
-    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf \
-    libxss1
-
-  log "[mkdocs] Installing puppeteer (used by mkdocs-page-pdf)"
-  mkdir -p "$HOME_DIR/.mkdocs-deps"
-  ( cd "$HOME_DIR/.mkdocs-deps"
-    [ -f package.json ] || npm init -y >/dev/null
-    npm install puppeteer )
-fi
-
-# When core-only, the devcontainer is expected to provide HLS. Warn if it didn't.
-if [ "$WITH_HASKELL" -eq 0 ]; then
-  if ! command -v haskell-language-server-wrapper >/dev/null 2>&1 \
-     && ! command -v haskell-language-server     >/dev/null 2>&1; then
-    warn "No haskell-language-server on PATH."
-    warn "Core install assumes the devcontainer provides Haskell tooling."
-    warn "Fix in the running container: ghcup install hls recommended && ghcup set hls recommended"
-    warn "Or re-run install.sh with --haskell to install the full Haskell layer."
-  fi
-fi
-
 log "Done. Open a new shell (or 'source ~/.bashrc') and run 'nvim' — checkhealth with ':checkhealth'."
-[ "$WITH_HASKELL" -eq 1 ] && log "Haskell layer installed (GHC ${GHC_VERSION}, Cabal ${CABAL_VERSION}, HLS ${HLS_VERSION})."
-[ "$WITH_LATEX"   -eq 1 ] && log "LaTeX layer installed."
-[ "$WITH_MKDOCS"  -eq 1 ] && log "MkDocs layer installed (puppeteer under ~/.mkdocs-deps)."
-[ "$WITH_HASKELL" -eq 0 ] && [ "$WITH_LATEX" -eq 0 ] && [ "$WITH_MKDOCS" -eq 0 ] && \
-  log "Core only. Re-run with --haskell / --latex / --mkdocs (or --all) to add layers."
