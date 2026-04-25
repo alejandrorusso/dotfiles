@@ -1,21 +1,12 @@
 # dotfiles
 
-Personal shell + neovim + tmux setup, extracted from
-`/vol/docker-nvim-haskell-latex-LLM/dockerfiles/neo-h.docker`.
+Personal shell + neovim + tmux setup, designed to overlay onto any
+devcontainer. The project's own `devcontainer.json` provides the language
+toolchain (Haskell, LaTeX, etc.) — this repo just adds your editor and
+shell on top.
 
-Designed to be used with the **devcontainers CLI** so every devcontainer you
-spin up gets your editor and shell without polluting the project's shared
-`devcontainer.json`.
-
-Haskell, LaTeX, and MkDocs are **opt-in** via flags (`--haskell`, `--latex`,
-`--mkdocs`). For engine-v2 the devcontainer provides GHC / Cabal / HLS, so
-run the core install only. For a standalone workstation run `--all` to
-match the original `neo-h.docker` setup.
-
-**Haskell versions** (`--haskell`) are pinned to match
-`/vol/engine-v2/.devcontainer/devcontainer.json`: GHC **9.12.2**,
-Cabal **3.16.0.0**, HLS **recommended**, plus `hlint` + `fourmolu` +
-`cabal-gild` installed via cabal.
+Use it with the **devcontainers CLI** so every container you spin up gets
+your config without polluting the project's shared `devcontainer.json`.
 
 ## What you get
 
@@ -33,58 +24,38 @@ Cabal **3.16.0.0**, HLS **recommended**, plus `hlint` + `fourmolu` +
 ## Install manually
 
 ```bash
-bash install.sh                              # core only: neovim, tmux, shell, Node (latest LTS via nvm), claude-code
-bash install.sh --haskell                    # + GHC 9.12.2 / Cabal 3.16.0.0 / HLS / hlint / fourmolu / cabal-gild / hoogle / fast-tags
-bash install.sh --latex                      # + texlive-xetex/luatex/science/extra, latexmk, biber, lhs2tex, zathura + Mason texlab/ltex-ls
-bash install.sh --mkdocs                     # + mkdocs + mkdocs-material + puppeteer + headless Chrome
-bash install.sh --all                        # all three layers
+bash install.sh                              # core install
 NODE_VERSION=22 bash install.sh              # pin a specific Node major instead of tracking LTS
 ```
 
-Re-runnable — every step skips work that's already done. You can run it
-once for core and re-run later with any layer flag when you need it.
+Re-runnable — every step skips work that's already done.
 
 ## Install via devcontainers CLI
 
-The devcontainer CLI clones this repo into `~/dotfiles` and runs the chosen
-install script as the container user after `postCreateCommand` finishes.
+The devcontainer CLI clones this repo into `~/dotfiles` and runs
+`install.sh` as the container user after `postCreateCommand` finishes.
 Plugins compile against the devcontainer's libc, avoiding the arch-mismatch
 problem you get when bind-mounting a `~/.local/share/nvim` from another
 container.
 
-### Quick-launch scripts
+### Quick-launch script
 
-For each layer there's a host-side launcher that runs `devcontainer up` +
-`devcontainer exec` with the right flags. Two variants for each layer:
-`.sh` for bash (WSL / Linux / macOS / Git Bash) and `.ps1` for PowerShell.
-
-`cd` into the project you want to open, then run one of:
+`core.sh` (bash) and `core.ps1` (PowerShell) are host-side launchers that
+run `devcontainer up` + `devcontainer exec` with the right flags. `cd`
+into the project you want to open, then run one of:
 
 **bash**
 ```bash
-bash /path/to/dotfiles/core.sh       # core only (matches engine-v2; Haskell comes from the devcontainer)
-bash /path/to/dotfiles/haskell.sh    # core + Haskell layer
-bash /path/to/dotfiles/latex.sh      # core + LaTeX layer
-bash /path/to/dotfiles/mkdocs.sh     # core + MkDocs layer
-bash /path/to/dotfiles/all.sh        # core + all three layers
+bash /path/to/dotfiles/core.sh
 ```
 
 **PowerShell**
 ```powershell
-C:\path\to\dotfiles\core.ps1         # core only
-C:\path\to\dotfiles\haskell.ps1      # core + Haskell layer
-C:\path\to\dotfiles\latex.ps1        # core + LaTeX layer
-C:\path\to\dotfiles\mkdocs.ps1       # core + MkDocs layer
-C:\path\to\dotfiles\all.ps1          # core + all three layers
+C:\path\to\dotfiles\core.ps1
 ```
 
-You can also pass a workspace folder explicitly: `haskell.sh ~/code/my-repo`
-or `.\haskell.ps1 C:\code\my-repo`.
-
-Each launcher points `--dotfiles-install-command` at a small wrapper
-(`install-<layer>.sh`) that invokes `install.sh` with the matching flag —
-necessary because the devcontainer CLI's `--dotfiles-install-command`
-doesn't forward arguments.
+You can also pass a workspace folder explicitly: `core.sh ~/code/my-repo`
+or `.\core.ps1 C:\code\my-repo`.
 
 > **PowerShell execution policy.** If you hit `cannot be loaded because
 > running scripts is disabled`, run once:
@@ -104,21 +75,17 @@ devcontainer up \
 devcontainer exec --workspace-folder . bash
 ```
 
-Swap `install.sh` for `install-haskell.sh` / `install-latex.sh` /
-`install-mkdocs.sh` / `install-all.sh` to add layers.
-
 ## Layout
 
 ```
 .
-├── install.sh                — core installer with --haskell / --latex / --mkdocs / --all flags
-├── install-{haskell,latex,mkdocs,all}.sh
-│                             — wrappers that call install.sh with one flag each
-│                               (pointed at by --dotfiles-install-command)
-├── {core,haskell,latex,mkdocs,all}.sh
-│                             — host-side launchers for bash (WSL/Linux/macOS/Git Bash)
-├── {core,haskell,latex,mkdocs,all}.ps1
-│                             — host-side launchers for PowerShell on Windows
+├── install.sh                — core installer
+├── core.sh / core.ps1        — host-side launchers (bash / PowerShell)
+├── list-devcontainers.sh / .ps1
+│                             — list devcontainers visible to the CLI
+├── devcontainer-templates/   — drop-in .devcontainer/ scaffolds for new
+│                               projects (haskell / latex / mkdocs);
+│                               see devcontainer-templates/README.md
 ├── bash/bashrc.d/            — sourced from ~/.bashrc in order
 ├── nvim/
 │   ├── init-add.lua          — appended to NvChad's init.lua once
@@ -128,13 +95,23 @@ Swap `install.sh` for `install-haskell.sh` / `install-latex.sh` /
 └── powerline/default.twolines.json
 ```
 
-## What's opt-in / omitted vs. neo-h.docker
+## Starting a new project
 
-| Layer                              | How to get it                                      |
+If the project doesn't already have a `.devcontainer/`, scaffold one
+from `devcontainer-templates/`:
+
+```bash
+cd /path/to/new-project
+bash /path/to/dotfiles/devcontainer-templates/create-devcontainer.sh --haskell
+bash /path/to/dotfiles/core.sh         # bring up + overlay dotfiles
+```
+
+See `devcontainer-templates/README.md` for the full list of stacks and
+PowerShell equivalents.
+
+## What's not in here
+
+| Concern                            | Where to put it                                    |
 | ---------------------------------- | -------------------------------------------------- |
-| GHC, Cabal, HLS, hlint, hoogle, fast-tags, fourmolu, cabal-gild | `--haskell` flag (matches engine-v2 devcontainer) |
-| LaTeX (texlive, zathura, biber, …) | `--latex` flag                                     |
-| mkdocs, puppeteer, Chrome          | `--mkdocs` flag                                    |
-| Claude Code CLI                    | Installed by default                               |
-| Python scipy                       | Omitted — unrelated                                |
-| SSH keys, anthropic/openai keys    | Omitted — never belongs in a dotfiles repo         |
+| Language toolchains (GHC, texlive, mkdocs, …) | The project's own `.devcontainer`        |
+| SSH keys, anthropic/openai keys    | Never in a dotfiles repo                           |

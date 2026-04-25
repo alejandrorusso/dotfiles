@@ -1,15 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Bring up the devcontainer with only the core dotfiles layer applied, then
-    drop into a bash shell inside the container.
+    Bring up the devcontainer, overlay the dotfiles, drop into a bash shell.
 .DESCRIPTION
-    Use this launcher for projects like engine-v2 whose own devcontainer
-    already provides the Haskell toolchain — the dotfiles just add nvim,
-    tmux, shell tools, and claude-code.
+    The dotfiles add nvim, tmux, shell tools, and claude-code on top of
+    whatever the project's devcontainer already provides (language
+    toolchains belong in the project's own devcontainer.json).
 .EXAMPLE
     .\core.ps1
-    .\core.ps1 C:\code\engine-v2
+    .\core.ps1 C:\code\my-project
 #>
 [CmdletBinding()]
 param(
