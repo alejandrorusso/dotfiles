@@ -18,6 +18,7 @@ RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula sele
       latexmk biber lhs2tex \
       zathura python3-pygments ttf-mscorefonts-installer \
       pdftk evince inkscape \
+      default-jre-headless \
     && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 

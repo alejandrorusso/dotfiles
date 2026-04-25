@@ -30,7 +30,7 @@ RUN install -d /etc/apt/keyrings \
     && apt-get update && apt-get install -y --no-install-recommends \
       google-chrome-stable \
       fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf \
-      libxss1 \
+      libxss1 dbus-x11 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -s /bin/bash vscode \
