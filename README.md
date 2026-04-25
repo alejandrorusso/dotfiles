@@ -83,6 +83,9 @@ devcontainer exec --workspace-folder . bash
 ├── core.sh / core.ps1        — host-side launchers (bash / PowerShell)
 ├── list-devcontainers.sh / .ps1
 │                             — list devcontainers visible to the CLI
+├── devcontainer-templates/   — drop-in .devcontainer/ scaffolds for new
+│                               projects (haskell / latex / mkdocs);
+│                               see devcontainer-templates/README.md
 ├── bash/bashrc.d/            — sourced from ~/.bashrc in order
 ├── nvim/
 │   ├── init-add.lua          — appended to NvChad's init.lua once
@@ -91,6 +94,20 @@ devcontainer exec --workspace-folder . bash
 ├── tmux/tmux.conf
 └── powerline/default.twolines.json
 ```
+
+## Starting a new project
+
+If the project doesn't already have a `.devcontainer/`, scaffold one
+from `devcontainer-templates/`:
+
+```bash
+cd /path/to/new-project
+bash /path/to/dotfiles/devcontainer-templates/create-devcontainer.sh --haskell
+bash /path/to/dotfiles/core.sh         # bring up + overlay dotfiles
+```
+
+See `devcontainer-templates/README.md` for the full list of stacks and
+PowerShell equivalents.
 
 ## What's not in here
 
