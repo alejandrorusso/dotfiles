@@ -429,6 +429,17 @@ if [ "$WITH_MKDOCS" -eq 1 ]; then
     npm install puppeteer )
 fi
 
+# When core-only, the devcontainer is expected to provide HLS. Warn if it didn't.
+if [ "$WITH_HASKELL" -eq 0 ]; then
+  if ! command -v haskell-language-server-wrapper >/dev/null 2>&1 \
+     && ! command -v haskell-language-server     >/dev/null 2>&1; then
+    warn "No haskell-language-server on PATH."
+    warn "Core install assumes the devcontainer provides Haskell tooling."
+    warn "Fix in the running container: ghcup install hls recommended && ghcup set hls recommended"
+    warn "Or re-run install.sh with --haskell to install the full Haskell layer."
+  fi
+fi
+
 log "Done. Open a new shell (or 'source ~/.bashrc') and run 'nvim' — checkhealth with ':checkhealth'."
 [ "$WITH_HASKELL" -eq 1 ] && log "Haskell layer installed (GHC ${GHC_VERSION}, Cabal ${CABAL_VERSION}, HLS ${HLS_VERSION})."
 [ "$WITH_LATEX"   -eq 1 ] && log "LaTeX layer installed."
