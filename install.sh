@@ -34,12 +34,13 @@ done
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 
-# Ensure dotfiles checkout uses LF (container git may default to CRLF).
-if git -C "$DOTFILES_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-  git -C "$DOTFILES_DIR" config core.autocrlf input
-  git -C "$DOTFILES_DIR" rm --cached -r -q . 2>/dev/null || true
-  git -C "$DOTFILES_DIR" checkout -- .
-fi
+# Defensive CRLF strip on every shell script we will source or invoke.
+# Covers two cases the .gitattributes alone does not:
+#   1. The repo was cloned before .gitattributes was added (stale CRLF on disk).
+#   2. The repo is bind-mounted from Windows, where an editor wrote CRLF in spite of .gitattributes.
+# Idempotent — files already in LF are unchanged.
+find "$DOTFILES_DIR" -type f -name '*.sh' -exec sed -i 's/\r$//' {} +
+
 HOME_DIR="${HOME:?HOME not set}"
 NVIM_VERSION="v0.11.0"
 NVIM_TARBALL="nvim-linux-x86_64"
@@ -299,6 +300,10 @@ unset _f
 # <<< dotfiles bashrc.d <<<
 EOF
 fi
+
+# Belt and braces: if anything upstream (skel, devcontainer feature) wrote ~/.bashrc with CRLF,
+# strip it now so a fresh `bash` invocation does not die with $'\r': command not found.
+sed -i 's/\r$//' "$HOME_DIR/.bashrc"
 
 # ---------------------------------------------------------------------------
 # 10. Headless nvim plugin + Mason install
