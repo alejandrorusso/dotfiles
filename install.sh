@@ -298,6 +298,31 @@ unset _f
 log "Bootstrapping nvim plugins (Lazy sync) — this may take a minute"
 "$NVIM_BIN" --headless "+Lazy! sync" +qa || warn "Lazy sync reported errors — run nvim interactively to inspect"
 
+# ---------------------------------------------------------------------------
+# Build neorg's tree-sitter parsers from source against the system libstdc++.
+# Lazy.nvim installs prebuilt rocks for tree-sitter-norg{,-meta} that require
+# GLIBCXX_3.4.32 (GCC 13+, ships with Ubuntu 24.04). On Ubuntu 22.04 the load
+# fails with "GLIBCXX_3.4.32 not found". The plugin spec sets
+# `configure_parsers = false` so neorg skips the cpath-based prebuilt parser
+# and falls back to the rtp; we compile a parser from the bundled source into
+# ~/.local/share/nvim/site/parser/ for the rtp search to find.
+LAZY_DIR="$HOME_DIR/.local/share/nvim/lazy"
+SITE_PARSER_DIR="$HOME_DIR/.local/share/nvim/site/parser"
+if [ -d "$LAZY_DIR/tree-sitter-norg/src" ]; then
+  log "Building neorg tree-sitter parsers from source (libstdc++ workaround)"
+  mkdir -p "$SITE_PARSER_DIR"
+  tmp=$(mktemp -d)
+  ( cd "$LAZY_DIR/tree-sitter-norg/src" && \
+    gcc -c -fPIC -O2 -I. parser.c   -o "$tmp/norg-parser.o" && \
+    g++ -c -fPIC -O2 -I. scanner.cc -o "$tmp/norg-scanner.o" && \
+    g++ -shared -o "$SITE_PARSER_DIR/norg.so" "$tmp/norg-parser.o" "$tmp/norg-scanner.o" )
+  if [ -d "$LAZY_DIR/tree-sitter-norg-meta/src" ]; then
+    ( cd "$LAZY_DIR/tree-sitter-norg-meta/src" && \
+      gcc -shared -fPIC -O2 -I. -o "$SITE_PARSER_DIR/norg_meta.so" parser.c )
+  fi
+  rm -rf "$tmp"
+fi
+
 log "Installing Mason tools (marksman, stylua, lua-language-server, prettier, clangd)"
 "$NVIM_BIN" --headless +"MasonUpdate" +q || true
 "$NVIM_BIN" --headless \
