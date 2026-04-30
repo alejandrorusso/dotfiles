@@ -136,6 +136,25 @@ if [ ! -d "$HOME_DIR/.fzf" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# 2b. Obsidian (desktop knowledge-management app)
+# Resolves the latest GitHub release, caches the .deb under XDG_CACHE_HOME,
+# and installs via apt so dependencies are pulled in.
+# ---------------------------------------------------------------------------
+if ! command -v obsidian >/dev/null 2>&1; then
+  log "Installing Obsidian"
+  TAG=$(curl -fsSI https://github.com/obsidianmd/obsidian-releases/releases/latest \
+    | tr -d '\r' | grep -i '^location:' | rev | cut -d/ -f1 | rev)
+  VERSION=${TAG#v}
+  DEB_URL="https://github.com/obsidianmd/obsidian-releases/releases/download/${TAG}/obsidian_${VERSION}_amd64.deb"
+  printf 'Tag: %s\nVersion: %s\nURL: %s\n' "$TAG" "$VERSION" "$DEB_URL"
+
+  DEB_CACHE="${XDG_CACHE_HOME:-$HOME_DIR/.cache}/obsidian-deb"
+  install -d "$DEB_CACHE"
+  curl -fL --progress-bar "$DEB_URL" -o "$DEB_CACHE/obsidian_${VERSION}_amd64.deb"
+  $SUDO apt install -y "$DEB_CACHE/obsidian_${VERSION}_amd64.deb"
+fi
+
+# ---------------------------------------------------------------------------
 # 3. Node.js via NVM (Ubuntu 22.04's apt npm = Node 12, too old for tree-sitter-cli 0.25)
 # ---------------------------------------------------------------------------
 export NVM_DIR="$HOME_DIR/.nvm"
