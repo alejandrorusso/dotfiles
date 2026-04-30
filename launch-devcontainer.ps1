@@ -7,8 +7,8 @@
     whatever the project's devcontainer already provides (language
     toolchains belong in the project's own devcontainer.json).
 .EXAMPLE
-    .\core.ps1
-    .\core.ps1 C:\code\my-project
+    .\launch-devcontainer.ps1
+    .\launch-devcontainer.ps1 C:\code\my-project
 #>
 [CmdletBinding()]
 param(

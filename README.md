@@ -40,22 +40,24 @@ container.
 
 ### Quick-launch script
 
-`core.sh` (bash) and `core.ps1` (PowerShell) are host-side launchers that
-run `devcontainer up` + `devcontainer exec` with the right flags. `cd`
-into the project you want to open, then run one of:
+`launch-devcontainer.sh` (bash) and `launch-devcontainer.ps1` (PowerShell)
+are host-side launchers that run `devcontainer up` + `devcontainer exec`
+with the right flags. `cd` into the project you want to open, then run
+one of:
 
 **bash**
 ```bash
-bash /path/to/dotfiles/core.sh
+bash /path/to/dotfiles/launch-devcontainer.sh
 ```
 
 **PowerShell**
 ```powershell
-C:\path\to\dotfiles\core.ps1
+C:\path\to\dotfiles\launch-devcontainer.ps1
 ```
 
-You can also pass a workspace folder explicitly: `core.sh ~/code/my-repo`
-or `.\core.ps1 C:\code\my-repo`.
+You can also pass a workspace folder explicitly:
+`launch-devcontainer.sh ~/code/my-repo` or
+`.\launch-devcontainer.ps1 C:\code\my-repo`.
 
 > **PowerShell execution policy.** If you hit `cannot be loaded because
 > running scripts is disabled`, run once:
@@ -80,12 +82,16 @@ devcontainer exec --workspace-folder . bash
 ```
 .
 ├── install.sh                — core installer
-├── core.sh / core.ps1        — host-side launchers (bash / PowerShell)
+├── launch-devcontainer.sh / .ps1
+│                             — host-side devcontainer launchers
+├── create-devcontainer.sh / .ps1
+│                             — scaffold .devcontainer/ from one or more
+│                               stacks (e.g. --haskell --latex);
+│                               see devcontainer-templates/README.md
 ├── list-devcontainers.sh / .ps1
 │                             — list devcontainers visible to the CLI
-├── devcontainer-templates/   — drop-in .devcontainer/ scaffolds for new
-│                               projects (haskell / latex / mkdocs);
-│                               see devcontainer-templates/README.md
+├── devcontainer-templates/   — fragments + per-stack .devcontainer pieces
+│                               consumed by create-devcontainer
 ├── bash/bashrc.d/            — sourced from ~/.bashrc in order
 ├── nvim/
 │   ├── init-add.lua          — appended to NvChad's init.lua once
@@ -98,12 +104,13 @@ devcontainer exec --workspace-folder . bash
 ## Starting a new project
 
 If the project doesn't already have a `.devcontainer/`, scaffold one
-from `devcontainer-templates/`:
+with `create-devcontainer.sh` (combine stacks by passing multiple flags):
 
 ```bash
 cd /path/to/new-project
-bash /path/to/dotfiles/devcontainer-templates/create-devcontainer.sh --haskell
-bash /path/to/dotfiles/core.sh         # bring up + overlay dotfiles
+bash /path/to/dotfiles/create-devcontainer.sh --haskell
+bash /path/to/dotfiles/create-devcontainer.sh --haskell --latex   # combined
+bash /path/to/dotfiles/launch-devcontainer.sh                     # bring up + overlay dotfiles
 ```
 
 See `devcontainer-templates/README.md` for the full list of stacks and

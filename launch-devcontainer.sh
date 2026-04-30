@@ -4,7 +4,7 @@
 # into a bash shell. Language toolchains come from the project's own
 # devcontainer.
 #
-# Usage:  core.sh [workspace-folder]
+# Usage:  launch-devcontainer.sh [workspace-folder]
 set -euo pipefail
 WORKSPACE="${1:-.}"
 

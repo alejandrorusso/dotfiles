@@ -1,30 +1,10 @@
-# Haskell devcontainer — pinned to engine-v2's toolchain.
-#
-# GHC 9.12.2 / Cabal 3.16.0.0 / HLS recommended, plus hlint, fourmolu,
-# cabal-gild, fast-tags, and hoogle (built from source). Override versions
-# at build time with --build-arg.
-
-FROM ubuntu:22.04
+# Haskell toolchain pinned to engine-v2's versions: GHC 9.12.2 / Cabal 3.16.0.0
+# / HLS recommended, plus hlint, fourmolu, cabal-gild, fast-tags, and hoogle
+# (built from source). Override versions at build time with --build-arg.
 
 ARG GHC_VERSION=9.12.2
 ARG CABAL_VERSION=3.16.0.0
 ARG HLS_VERSION=recommended
-
-ENV DEBIAN_FRONTEND=noninteractive
-ENV LANG=en_US.UTF-8
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git sudo locales \
-      build-essential libnuma-dev zlib1g-dev libgmp-dev libgmp10 liblzma-dev \
-    && locale-gen en_US.UTF-8 \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN useradd -m -s /bin/bash vscode \
-    && echo "vscode ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/vscode \
-    && chmod 0440 /etc/sudoers.d/vscode
-
-USER vscode
-WORKDIR /home/vscode
 
 ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
     BOOTSTRAP_HASKELL_GHC_VERSION=${GHC_VERSION} \
