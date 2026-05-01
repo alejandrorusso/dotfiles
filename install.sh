@@ -63,7 +63,8 @@ apt_install \
   ca-certificates \
   powerline less \
   trash-cli tldr bat coreutils unzip locales ripgrep fd-find luarocks \
-  tmux ncurses-term inetutils-ping xclip duf
+  tmux ncurses-term inetutils-ping xclip duf \
+  python3-pip
 
 # fd ships as fdfind on Debian/Ubuntu; add a convenience symlink if missing.
 if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
@@ -204,6 +205,13 @@ NVIM_BIN="/opt/${NVIM_TARBALL}/bin/nvim"
 
 log "Installing luarocks jsregexp (required by some nvim plugins)"
 $SUDO luarocks install --force jsregexp >/dev/null
+
+# pynvim — required by Coqtail and any other Python-based nvim plugin.
+# `--break-system-packages` is needed on PEP 668 distros (Debian 12+/Ubuntu 24.04+);
+# silently ignored on older pip.
+log "Installing pynvim (Python provider for nvim)"
+$SUDO python3 -m pip install --upgrade --break-system-packages pynvim 2>/dev/null \
+  || $SUDO python3 -m pip install --upgrade pynvim
 
 # ---------------------------------------------------------------------------
 # 4. Tmux plugin manager (tpm)
