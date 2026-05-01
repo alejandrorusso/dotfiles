@@ -11,12 +11,14 @@
     .\create-devcontainer.ps1 -Haskell
     .\create-devcontainer.ps1 -Latex C:\code\new-project
     .\create-devcontainer.ps1 -MkDocs -Force
+    .\create-devcontainer.ps1 -Coq
 #>
 [CmdletBinding(DefaultParameterSetName = 'Haskell')]
 param(
   [Parameter(ParameterSetName = 'Haskell', Mandatory = $true)] [switch]$Haskell,
   [Parameter(ParameterSetName = 'Latex',   Mandatory = $true)] [switch]$Latex,
   [Parameter(ParameterSetName = 'MkDocs',  Mandatory = $true)] [switch]$MkDocs,
+  [Parameter(ParameterSetName = 'Coq',     Mandatory = $true)] [switch]$Coq,
 
   [Parameter(Position = 0)] [string]$Folder = ".",
   [switch]$Force
@@ -27,6 +29,7 @@ $stack = switch ($PSCmdlet.ParameterSetName) {
   'Haskell' { 'haskell' }
   'Latex'   { 'latex' }
   'MkDocs'  { 'mkdocs' }
+  'Coq'     { 'coq' }
 }
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

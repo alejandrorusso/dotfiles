@@ -166,6 +166,31 @@ return {
 		lazy = false, -- This plugin is already lazy
 	},
 
+	-- Coq syntax + ftdetect (Coqtail used only for highlighting; the
+	-- interactive proof side is handled by coq-lsp.nvim below).
+	-- Both are ft="coq" lazy-loaded -- harmless in non-Coq devcontainers.
+	{
+		"whonore/Coqtail",
+		ft = "coq",
+		init = function()
+			vim.g.coqtail_nomap = 1
+			vim.g.coqtail_noimap = 1
+		end,
+	},
+
+	-- Coq LSP client. The coq-lsp server is provided by the Coq
+	-- devcontainer template (devcontainer-templates/coq).
+	{
+		"tomtomjhj/coq-lsp.nvim",
+		ft = "coq",
+		dependencies = { "neovim/nvim-lspconfig" },
+		config = function()
+			require("coq-lsp").setup({
+				coq_lsp_args = { "--bt" },
+			})
+		end,
+	},
+
 	-- Markdown (:Mtoc)
 	{
 		"hedyhli/markdown-toc.nvim",

@@ -6,6 +6,7 @@
 #   create-devcontainer.sh --haskell [target-folder]
 #   create-devcontainer.sh --latex   [target-folder]
 #   create-devcontainer.sh --mkdocs  [target-folder]
+#   create-devcontainer.sh --coq     [target-folder]
 #
 # Add --force to overwrite an existing .devcontainer/.
 
@@ -21,6 +22,7 @@ for arg in "$@"; do
     --haskell) STACK="haskell" ;;
     --latex)   STACK="latex" ;;
     --mkdocs)  STACK="mkdocs" ;;
+    --coq)     STACK="coq" ;;
     --force)   FORCE=1 ;;
     -h|--help) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "Unknown flag: $arg" >&2; exit 2 ;;
@@ -29,7 +31,7 @@ for arg in "$@"; do
 done
 
 if [ -z "$STACK" ]; then
-  echo "error: must specify one of --haskell / --latex / --mkdocs" >&2
+  echo "error: must specify one of --haskell / --latex / --mkdocs / --coq" >&2
   exit 2
 fi
 

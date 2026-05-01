@@ -13,6 +13,9 @@ Stacks:
   lhs2tex, zathura, pdftk, evince, inkscape.
 - **mkdocs** — mkdocs + mkdocs-material + plugins, puppeteer + Google
   Chrome for `mkdocs-page-pdf`.
+- **coq** — Coq 8.20.1 + coq-lsp 0.2.5 via opam (OCaml 4.14.2). The
+  nvim overlay's `coq-lsp.nvim` + `Coqtail` plugins pick up the server
+  automatically.
 
 ## Usage
 
@@ -23,6 +26,7 @@ Stacks:
 bash /path/to/dotfiles/devcontainer-templates/create-devcontainer.sh --haskell
 bash /path/to/dotfiles/devcontainer-templates/create-devcontainer.sh --latex
 bash /path/to/dotfiles/devcontainer-templates/create-devcontainer.sh --mkdocs
+bash /path/to/dotfiles/devcontainer-templates/create-devcontainer.sh --coq
 ```
 
 **PowerShell**
@@ -30,6 +34,7 @@ bash /path/to/dotfiles/devcontainer-templates/create-devcontainer.sh --mkdocs
 C:\path\to\dotfiles\devcontainer-templates\create-devcontainer.ps1 -Haskell
 C:\path\to\dotfiles\devcontainer-templates\create-devcontainer.ps1 -Latex
 C:\path\to\dotfiles\devcontainer-templates\create-devcontainer.ps1 -MkDocs
+C:\path\to\dotfiles\devcontainer-templates\create-devcontainer.ps1 -Coq
 ```
 
 This creates `./.devcontainer/devcontainer.json` and `./.devcontainer/Dockerfile`.
