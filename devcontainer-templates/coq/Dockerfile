@@ -37,11 +37,17 @@ RUN opam init --bare --no-setup --disable-sandboxing --yes \
          coq.${COQ_VERSION} coq-lsp.${COQ_LSP_VERSION} \
     && opam clean --all-switches --download-cache --logs --repo-cache --yes
 
-# Expose coqc/coqtop/coq-lsp on the default PATH so nvim's LSP client and
+# Expose the Coq toolchain on the default PATH so nvim's LSP client and
 # any non-login shell (incl. CI) can find them without sourcing opam env.
-RUN sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coqc     /usr/local/bin/coqc \
-    && sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coqtop  /usr/local/bin/coqtop \
-    && sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coq-lsp /usr/local/bin/coq-lsp
+# coqdep and coq_makefile are needed for projects with a _CoqProject /
+# Makefile (the standard layout); coqc/coqtop/coq-lsp are the daily drivers.
+RUN sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coqc         /usr/local/bin/coqc \
+    && sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coqtop      /usr/local/bin/coqtop \
+    && sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coq-lsp     /usr/local/bin/coq-lsp \
+    && sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coqdep      /usr/local/bin/coqdep \
+    && sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coq_makefile /usr/local/bin/coq_makefile \
+    && sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coqdoc      /usr/local/bin/coqdoc \
+    && sudo ln -sf /home/vscode/.opam/${OPAM_SWITCH}/bin/coqchk      /usr/local/bin/coqchk
 
 # Activate the switch in interactive shells (so `opam` itself works).
 RUN echo "eval \"\$(opam env --switch=${OPAM_SWITCH} 2>/dev/null)\"" >> /home/vscode/.bashrc
