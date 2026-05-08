@@ -61,7 +61,7 @@ apt_install \
   software-properties-common sudo ssh git wget curl make lzma \
   build-essential gcc autoconf automake gpg dirmngr gnupg2 socat lsb-release \
   ca-certificates \
-  powerline less \
+  less \
   trash-cli tldr bat coreutils unzip locales ripgrep fd-find luarocks \
   tmux ncurses-term inetutils-ping xclip duf \
   python3-pip
@@ -273,15 +273,30 @@ TMUX_PLUGIN_MANAGER_PATH="$HOME_DIR/.tmux/plugins" \
   "$HOME_DIR/.tmux/plugins/tpm/bin/install_plugins"
 
 # ---------------------------------------------------------------------------
-# 7. Powerline two-lines theme
+# 7. Starship prompt
 # ---------------------------------------------------------------------------
-if [ -d /usr/share/powerline/config_files/themes/shell ]; then
-  log "Installing powerline two-lines theme"
-  $SUDO cp "$DOTFILES_DIR/powerline/default.twolines.json" \
-    /usr/share/powerline/config_files/themes/shell/default.twolines.json
-  $SUDO sed -i 's/default_leftonly/default.twolines/g' \
-    /usr/share/powerline/config_files/config.json
+if ! command -v starship >/dev/null 2>&1; then
+  log "Installing starship"
+  STARSHIP_VERSION="${STARSHIP_VERSION:-1.21.1}"
+  case "$(uname -m)" in
+    x86_64)  STARSHIP_TARGET="x86_64-unknown-linux-gnu" ;;
+    aarch64) STARSHIP_TARGET="aarch64-unknown-linux-gnu" ;;
+    *) log "Unsupported arch for starship: $(uname -m)"; STARSHIP_TARGET="" ;;
+  esac
+  if [ -n "$STARSHIP_TARGET" ]; then
+    STARSHIP_TMP="$(mktemp -d)"
+    curl -fsSL \
+      "https://github.com/starship/starship/releases/download/v${STARSHIP_VERSION}/starship-${STARSHIP_TARGET}.tar.gz" \
+      -o "$STARSHIP_TMP/starship.tar.gz"
+    tar -xzf "$STARSHIP_TMP/starship.tar.gz" -C "$STARSHIP_TMP"
+    $SUDO install -m 0755 "$STARSHIP_TMP/starship" /usr/local/bin/starship
+    rm -rf "$STARSHIP_TMP"
+  fi
 fi
+
+log "Installing starship config"
+mkdir -p "$HOME_DIR/.config"
+cp "$DOTFILES_DIR/starship/starship.toml" "$HOME_DIR/.config/starship.toml"
 
 # ---------------------------------------------------------------------------
 # 8. Ansi welcome banner

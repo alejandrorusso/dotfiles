@@ -13,8 +13,8 @@ your config without polluting the project's shared `devcontainer.json`.
 - **neovim** v0.11.0 + NvChad starter, overlayed with your plugin list, key
   maps, LSP config, conform (format-on-save), autocmds, and chadrc theme
 - **tmux** with tpm and your `.tmux.conf`
-- **bash** additions: vi-mode, eza/bat/fzf/zoxide/carapace, powerline prompt
-  (two-lines theme), nvm sourcing, XDG_RUNTIME_DIR, ansi-welcome banner
+- **bash** additions: vi-mode, eza/bat/fzf/zoxide/carapace, starship prompt
+  (two-line, powerline-style chevrons), nvm sourcing, XDG_RUNTIME_DIR, ansi-welcome banner
 - **Node.js** latest LTS via **nvm** (override with `NODE_VERSION=<major>`)
 - **Claude Code CLI** (`@anthropic-ai/claude-code`) globally installed
 - **CLI tools**: eza, bat, fd, ripgrep, dust, bottom, duf, tldr, trash-cli,
@@ -92,7 +92,7 @@ devcontainer exec --workspace-folder . bash
 │   ├── fourmolu.yaml         — reference copy of fourmolu config
 │   └── lua/                  — symlinked into ~/.config/nvim/lua
 ├── tmux/tmux.conf
-└── powerline/default.twolines.json
+└── starship/starship.toml
 ```
 
 ## Starting a new project
