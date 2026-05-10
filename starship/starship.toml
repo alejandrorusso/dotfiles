@@ -19,6 +19,10 @@ $character"""
 
 add_newline = true
 
+# Default is 500ms. Windows bind mounts into Linux containers make git slow
+# enough to trip the timeout on every prompt; bump it generously.
+command_timeout = 5000
+
 [fill]
 symbol = " "
 
