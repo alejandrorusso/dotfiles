@@ -35,11 +35,14 @@ if ($stacks.Count -eq 0) {
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $tplDir    = Join-Path $scriptDir "devcontainer-templates"
 $fragDir   = Join-Path $tplDir "fragments"
-$dest      = Join-Path $Folder ".devcontainer"
 
 if (-not (Test-Path $Folder -PathType Container)) {
   throw "target folder does not exist: $Folder"
 }
+# Resolve to absolute: [System.IO.File] uses .NET's CWD (often system32),
+# not PowerShell's location, so relative paths land in the wrong place.
+$Folder    = (Resolve-Path -LiteralPath $Folder).Path
+$dest      = Join-Path $Folder ".devcontainer"
 if ((Test-Path $dest) -and -not $Force) {
   throw "$dest already exists (re-run with -Force to overwrite)"
 }

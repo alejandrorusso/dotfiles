@@ -19,8 +19,14 @@ $ErrorActionPreference = 'Stop'
 devcontainer up `
   --workspace-folder $Folder `
   --dotfiles-repository https://github.com/alejandrorusso/dotfiles `
-  --dotfiles-install-command install.sh `
   --dotfiles-target-path ~/dotfiles
 if ($LASTEXITCODE -ne 0) { throw "devcontainer up failed (exit $LASTEXITCODE)" }
+
+# --dotfiles-install-command is unreliable: the CLI silently skips it under
+# common conditions (e.g. some Docker Desktop / CLI version combos), leaving a
+# clone-only install with no bashrc wiring. Run the installer explicitly so
+# failures are visible. install.sh is idempotent.
+devcontainer exec --workspace-folder $Folder bash -lc 'bash ~/dotfiles/install.sh'
+if ($LASTEXITCODE -ne 0) { throw "dotfiles install.sh failed (exit $LASTEXITCODE)" }
 
 devcontainer exec --workspace-folder $Folder bash
