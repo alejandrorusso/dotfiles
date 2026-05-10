@@ -4,5 +4,13 @@
     "dockerfile": "Dockerfile"
   },
   "remoteUser": "vscode",
-  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+  // GUI apps (evince, zathura, inkscape) display via a Windows X server
+  // (VcXsrv / X410). Start the X server with "Disable access control" so the
+  // container can connect; host.docker.internal resolves to the Windows host
+  // under Docker Desktop. On non-Windows hosts override DISPLAY locally.
+  "containerEnv": {
+    "DISPLAY": "host.docker.internal:0"
+  }
 }
