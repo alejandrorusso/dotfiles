@@ -16,6 +16,27 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+# Ensure a Windows X server is running so containers with
+# DISPLAY=host.docker.internal:0 (e.g. the latex template) can show GUI apps.
+# No-op when VcXsrv is already running; warns (does not fail) when missing.
+if (-not (Get-Process vcxsrv -ErrorAction SilentlyContinue)) {
+  $vcxsrvPath = $null
+  $cmd = Get-Command vcxsrv.exe -ErrorAction SilentlyContinue
+  if ($cmd) {
+    $vcxsrvPath = $cmd.Path
+  } else {
+    $candidate = Join-Path $env:ProgramFiles 'VcXsrv\vcxsrv.exe'
+    if (Test-Path $candidate) { $vcxsrvPath = $candidate }
+  }
+  if ($vcxsrvPath) {
+    Write-Host "Starting VcXsrv (display :0, access control off)"
+    Start-Process -FilePath $vcxsrvPath `
+      -ArgumentList ':0','-multiwindow','-clipboard','-wgl','-ac'
+  } else {
+    Write-Warning "VcXsrv not found. GUI apps in the container will have no display. Install with: winget install marha.VcXsrv"
+  }
+}
+
 devcontainer up `
   --workspace-folder $Folder `
   --dotfiles-repository https://github.com/alejandrorusso/dotfiles `
