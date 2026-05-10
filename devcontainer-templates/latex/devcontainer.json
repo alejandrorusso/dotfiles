@@ -4,19 +4,5 @@
     "dockerfile": "Dockerfile"
   },
   "remoteUser": "vscode",
-  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-
-  // WSLg passthrough so GUI apps (evince, etc.) display from the container.
-  // Requires Win11 + WSL2; the bind sources won't exist on plain Linux/macOS
-  // and the container will fail to start there — drop these blocks if porting.
-  "mounts": [
-    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
-    "source=/mnt/wslg,target=/mnt/wslg,type=bind"
-  ],
-  "containerEnv": {
-    "DISPLAY": ":0",
-    "WAYLAND_DISPLAY": "wayland-0",
-    "XDG_RUNTIME_DIR": "/mnt/wslg/runtime-dir",
-    "PULSE_SERVER": "/mnt/wslg/PulseServer"
-  }
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
 }
