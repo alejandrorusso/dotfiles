@@ -296,7 +296,8 @@ fi
 
 log "Installing starship config"
 mkdir -p "$HOME_DIR/.config"
-cp "$DOTFILES_DIR/starship/starship.toml" "$HOME_DIR/.config/starship.toml"
+cp "$DOTFILES_DIR/starship/starship.toml"      "$HOME_DIR/.config/starship.toml"
+cp "$DOTFILES_DIR/starship/starship-slow.toml" "$HOME_DIR/.config/starship-slow.toml"
 
 # ---------------------------------------------------------------------------
 # 8. Ansi welcome banner

@@ -1,16 +1,21 @@
-# Starship config — powerline two-line look with arrowed segments.
+# Variant of starship.toml used when $PWD is on a slow filesystem
+# (9p, drvfs, fuse.drvfs — typically Windows bind mounts inside WSL/devcontainers).
+# Git_status is disabled here because `git status` lstat()s every indexed file
+# across the FS boundary, which can take seconds.
+#
+# Selection logic lives in dotfiles/bash/bashrc.d/41-starship-fs.sh — it swaps
+# $STARSHIP_CONFIG between this file and starship.toml based on `stat -f`.
 
 format = """
 $os\
 $username\
-[](bg:#0087af fg:#005f87)\
+[](bg:#0087af fg:#005f87)\
 ${custom.host}\
-[](bg:#3a3a3a fg:#0087af)\
+[](bg:#3a3a3a fg:#0087af)\
 $directory\
-[](bg:#1c1c1c fg:#3a3a3a)\
+[](bg:#1c1c1c fg:#3a3a3a)\
 $git_branch\
-$git_status\
-[](fg:#1c1c1c)\
+[](fg:#1c1c1c)\
 $fill\
 $cmd_duration\
 $status\
@@ -19,21 +24,15 @@ $character"""
 
 add_newline = true
 
-# 500ms timeout so the prompt fails fast instead of hanging on slow git
-# (e.g. repos on 9p/drvfs Windows bind mounts). If git_status can't answer
-# in 500ms, it's better to show no status than to block the prompt.
-# Note: a companion config at ~/.config/starship-slow.toml disables git_status
-# entirely on detected slow filesystems — see bashrc.d/41-starship-fs.sh.
 command_timeout = 500
 
 [fill]
 symbol = " "
 
-# λ on the second line wrapped in its own arrowed segment.
 [character]
-success_symbol = "[ λ ](bg:#005f87 fg:#ffffff bold)[](fg:#005f87)"
-error_symbol   = "[ λ ](bg:#870000 fg:#ffffff bold)[](fg:#870000)"
-vimcmd_symbol  = "[ λ ](bg:#5f5f00 fg:#ffffff bold)[](fg:#5f5f00)"
+success_symbol = "[ λ ](bg:#005f87 fg:#ffffff bold)[](fg:#005f87)"
+error_symbol   = "[ λ ](bg:#870000 fg:#ffffff bold)[](fg:#870000)"
+vimcmd_symbol  = "[ λ ](bg:#5f5f00 fg:#ffffff bold)[](fg:#5f5f00)"
 
 [username]
 show_always = true
@@ -61,19 +60,12 @@ truncate_to_repo = false
 [git_branch]
 symbol = ""
 style = "bg:#1c1c1c fg:#5fafff"
-format = "[ $symbol $branch ]($style)"
+# Trailing marker so you can see at a glance you're on a slow FS.
+format = "[ $symbol $branch ⚠ slow-fs ]($style)"
 
+# git_status disabled — see header comment.
 [git_status]
-style = "bg:#1c1c1c fg:#ff8700"
-format = '[$all_status$ahead_behind ]($style)'
-stashed = '\$${count} '
-ahead = "↑${count} "
-behind = "↓${count} "
-diverged = "↕↑${ahead_count}↓${behind_count} "
-modified = "✱${count} "
-staged = "●${count} "
-untracked = "?${count} "
-conflicted = "✖${count} "
+disabled = true
 
 [cmd_duration]
 min_time = 500
@@ -91,7 +83,6 @@ style = "fg:#5fafff"
 symbol = "✦"
 format = "[$symbol$number]($style) "
 
-# Disable heavy modules for snappy startup.
 [nodejs]
 disabled = true
 [python]
