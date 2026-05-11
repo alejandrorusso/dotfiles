@@ -1,3 +1,13 @@
+# Default: detect text vs binary; normalize text to LF in the index and on checkout.
 * text=auto eol=lf
+
+# PowerShell is a Windows-side tool — keep CRLF so PS hosts don't choke.
 *.ps1 text eol=crlf
+
+# Shell scripts must be LF (bash refuses CRLF shebang lines).
 *.sh  text eol=lf
+
+# CSV files: pinned to LF for consistency with the rest of the Linux toolchain.
+# If you ever need Excel/RFC-4180-strict output, switch this single rule to
+# `*.csv text eol=crlf`, or `-text` to make git ignore line endings entirely.
+*.csv text eol=lf
